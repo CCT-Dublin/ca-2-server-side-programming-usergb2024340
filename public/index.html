@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Ingestion System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+
+    <section class="form-container">
+        
+        <form id="lead-form" action="/post-entry" method="POST">
+            <div class="input-group">
+                <label for="fname">First Name:</label>
+                <input type="text" id="fname" name="fname" placeholder="e.g. John">
+                <span id="err-fname" class="err-msg"></span>
+            </div>
+
+            <div class="input-group">
+                <label for="lname">Last Name:</label>
+                <input type="text" id="lname" name="lname" placeholder="e.g. Doe">
+                <span id="err-lname" class="err-msg"></span>
+            </div>
+
+            <div class="input-group">
+                <label for="email">Email Address:</label>
+                <input type="email" id="email" name="email" placeholder="john@example.com">
+                <span id="err-email" class="err-msg"></span>
+            </div>
+
+            <div class="input-group">
+                <label for="phone">Phone Number:</label>
+                <input type="text" id="phone" name="phone" placeholder="10 Digits">
+                <span id="err-phone" class="err-msg"></span>
+            </div>
+
+            <div class="input-group">
+                <label for="zipcode">Zipcode/Eircode:</label>
+                <input type="text" id="zipcode" name="zipcode" placeholder="6 Characters">
+                <span id="err-zipcode" class="err-msg"></span>
+            </div>
+
+            <button type="submit" id="btn-submit">Register Lead</button>
+        </form>
+    </section>
+
+    <script src="gateway.js"></script>
+</body>
+</html>
