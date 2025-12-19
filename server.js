@@ -1,5 +1,9 @@
+// Import express and path modules
 const express = require('express');
 const path = require('path');
+// Import file handling libraries
+const multer = require('multer');
+const fs = require('fs');
 
 // Import our custom modules using the new naming convention
 const { pool, initializeDatabase } = require('./db-client');
@@ -7,17 +11,28 @@ const { validateEntry, cleanInput } = require('./processor');
 
 const app = express();
 
+//multer configuration block - This creates a 'temp_uploads' folder if it doesn't exist to prevent errors
+const uploadDir = './temp_uploads';
+if (!fs.existsSync(uploadDir)){
+    fs.mkdirSync(uploadDir);
+}
+
+// Configure multer to store files in our temp folder
+const loader = multer({ 
+    dest: uploadDir,
+    limits: { fileSize: 2 * 1024 * 1024 } // Limit to 2MB for safety
+});
+
+
 // Middleware
 app.use(express.json());
-// extended: true allows for rich objects and arrays to be encoded into the URL-encoded format
 app.use(express.urlencoded({ extended: true })); 
 app.use(express.static(path.join(__dirname, 'public')));
 
-//Post method to handle data coming from the 'Manual Entry' form
+// Post method to handle data coming from the 'Manual Entry' form
 app.post('/post-entry', async (req, res) => {
-    const errors = validateEntry(req.body); //Capture and Validate
+    const errors = validateEntry(req.body); 
 
-    //Check if validation failed
     if (Object.keys(errors).length > 0) {
         console.log("Validation failed for a manual entry.");
         return res.status(400).json({
@@ -26,7 +41,6 @@ app.post('/post-entry', async (req, res) => {
         });
     }
 
-    //Destructure and Sanitize (XSS Protection)
     const { fname, lname, email, phone, zipcode } = req.body;
     
     const safeData = [
@@ -37,7 +51,6 @@ app.post('/post-entry', async (req, res) => {
         cleanInput(zipcode)
     ];
 
-    // Database Insertion using Prepared Statements (SQL Injection Protection)
     const insertSQL = `
         INSERT INTO customer_leads (fname, lname, email, phone, zipcode)
         VALUES (?, ?, ?, ?, ?)
