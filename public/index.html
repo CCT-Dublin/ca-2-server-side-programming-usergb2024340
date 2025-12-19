@@ -7,10 +7,12 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <h1>Server Side Assignment CA-2</h1>
     
+    <div id="status-box"></div>
 
     <section class="form-container">
-        
+        <h2>Manual Entry</h2>
         <form id="lead-form" action="/post-entry" method="POST">
             <div class="input-group">
                 <label for="fname">First Name:</label>
@@ -20,7 +22,7 @@
 
             <div class="input-group">
                 <label for="lname">Last Name:</label>
-                <input type="text" id="lname" name="lname" placeholder="e.g. Doe">
+                <input type="text" id="lname" name="lname" placeholder="e.g. Connor">
                 <span id="err-lname" class="err-msg"></span>
             </div>
 
@@ -42,7 +44,20 @@
                 <span id="err-zipcode" class="err-msg"></span>
             </div>
 
-            <button type="submit" id="btn-submit">Register Lead</button>
+            <button type="submit" id="btn-submit">Register</button>
+        </form>
+    </section>
+
+    <hr>
+
+    <section class="form-container">
+        <h2>Bulk CSV Upload</h2>
+        <form id="bulk-form" action="/bulk-upload" method="POST" enctype="multipart/form-data">
+            <div class="input-group">
+                <label for="csv_doc">Select CSV File:</label>
+                <input type="file" id="csv_doc" name="csv_doc" accept=".csv">
+            </div>
+            <button type="submit" id="btn-upload">Upload & Process</button>
         </form>
     </section>
 
