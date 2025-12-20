@@ -1,9 +1,11 @@
-// Import express and path modules
+//Import express and path modules
 const express = require('express');
 const path = require('path');
-// Import file handling libraries
+//Import file handling libraries for MULTER
 const multer = require('multer');
 const fs = require('fs');
+// Import CSV parser
+const csv = require('csv-parser');
 
 // Import our custom modules using the new naming convention
 const { pool, initializeDatabase } = require('./db-client');
@@ -11,7 +13,7 @@ const { validateEntry, cleanInput } = require('./processor');
 
 const app = express();
 
-//multer configuration block - This creates a 'temp_uploads' folder if it doesn't exist to prevent errors
+//MULTER setup to handle file uploads
 const uploadDir = './temp_uploads';
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir);
@@ -20,9 +22,8 @@ if (!fs.existsSync(uploadDir)){
 // Configure multer to store files in our temp folder
 const loader = multer({ 
     dest: uploadDir,
-    limits: { fileSize: 2 * 1024 * 1024 } // Limit to 2MB for safety
+    limits: { fileSize: 2 * 1024 * 1024 } 
 });
-
 
 // Middleware
 app.use(express.json());
@@ -65,6 +66,73 @@ app.post('/post-entry', async (req, res) => {
         console.error("Database Error:", dbError);
         res.status(500).json({ 
             msg: "Internal Server Error: Could not save lead to the database." 
+        });
+    }
+});
+
+//BULK CSV upload handling
+app.post('/bulk-upload', loader.single('csv_doc'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ msg: "No file was uploaded." });
+    }
+
+    const filePath = req.file.path;
+    const validRecords = [];
+    const invalidRecords = [];
+
+    // We wrap the stream in a Promise to ensure we wait for it to finish before responding
+    try {
+        await new Promise((resolve, reject) => {
+            fs.createReadStream(filePath)
+                .pipe(csv())
+                .on('data', (row) => {
+                    // Map CSV headers to our expected keys
+                    const entry = {
+                        fname: row.fname || row.First_Name,
+                        lname: row.lname || row.Last_Name || row.second_name,
+                        email: row.email || row.Email,
+                        phone: row.phone || row.Phone_Number || row.phone_number,
+                        zipcode: row.zipcode || row.Zipcode || row.eircode
+                    };
+
+                    const rowErrors = validateEntry(entry);
+
+                    if (Object.keys(rowErrors).length === 0) {
+                        // Sanitize and push to bulk array
+                        validRecords.push([
+                            cleanInput(entry.fname),
+                            cleanInput(entry.lname),
+                            cleanInput(entry.email),
+                            cleanInput(entry.phone),
+                            cleanInput(entry.zipcode)
+                        ]);
+                    } else {
+                        invalidRecords.push({ data: entry, errors: rowErrors });
+                    }
+                })
+                .on('end', resolve)
+                .on('error', reject);
+        });
+
+        // If we have valid records, perform a bulk insert
+        if (validRecords.length > 0) {
+            const bulkSQL = `INSERT INTO customer_leads (fname, lname, email, phone, zipcode) VALUES ?`;
+            await pool.query(bulkSQL, [validRecords]);
+        }
+
+        res.json({
+            msg: `Processing complete. ${validRecords.length} records imported.`,
+            invalidCount: invalidRecords.length,
+            details: invalidRecords
+        });
+
+    } catch (error) {
+        console.error("Bulk Upload Error:", error);
+        res.status(500).json({ msg: "Failed to process CSV file." });
+    } finally {
+        // Always delete the temp file to save disk space
+        fs.unlink(filePath, (err) => {
+            if (err) console.error("Cleanup Error:", err);
         });
     }
 });
