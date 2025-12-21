@@ -88,11 +88,11 @@ app.post('/bulk-upload', loader.single('csv_doc'), async (req, res) => {
                 .on('data', (row) => {
                     // Map CSV headers to our expected keys
                     const entry = {
-                        fname: row.fname || row.First_Name,
-                        lname: row.lname || row.Last_Name || row.second_name,
-                        email: row.email || row.Email,
-                        phone: row.phone || row.Phone_Number || row.phone_number,
-                        zipcode: row.zipcode || row.Zipcode || row.eircode
+                        fname: row.first_name,
+                        lname: row.last_name,
+                        email: row.email,
+                        phone: row.phone,
+                        zipcode: row.eir_code
                     };
 
                     const rowErrors = validateEntry(entry);
